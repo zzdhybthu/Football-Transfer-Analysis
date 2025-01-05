@@ -1,0 +1,85 @@
+---
+title: "Rumorclean"
+output: word_document
+date: "2024-12-12"
+---
+
+```{R}
+library(dplyr)
+library(rvest)
+library(httr)
+library(purrr)
+library(ggplot2)
+
+# setwd(" ")  set working directory
+
+load("final_df_with_gpt_3.5.RData")  ## load dataframe with gpt3.5
+
+final_df = final_df_with_gpt_3.5 ## rename into final_df
+```
+
+```{R}
+#standardize rumor.Source
+
+final_df = final_df %>%
+  mutate(Rumor.Source = sub("https://(www\\.|en\\.|m\\.|manage\\.)?", "https://", Rumor.Source))
+
+final_df <- final_df %>%
+  mutate(Rumor.Source = sub("https://([a-zA-Z0-9-]+)\\.[a-z]+", "\\1", Rumor.Source))
+
+final_df <- final_df %>%
+  mutate(Rumor.Source = sub("([a-zA-Z0-9-]+)\\.[a-z]+","\\1", Rumor.Source))
+```
+
+```{R}
+library(lubridate)
+
+# format the date using lubridate package
+
+final_df = final_df %>%
+  mutate(
+    fact.date = as.Date(fact.date, format = "%Y-%m-%d"),
+    Rumor_dt = as.POSIXct(Rumor_dt, format = "%Y-%m-%d %H:%M:%S"),
+    Time_Difference = as.numeric(difftime(fact.date, Rumor_dt, units = "days"))
+  )
+
+clean_currency = function(x) {
+  x = gsub("\\€", "", x)  # remove €
+  
+  multiplier = ifelse(grepl("k$", x), 1000,
+                       ifelse(grepl("m$", x), 1000000, 1))
+  x <- as.numeric(substring(x, 1, nchar(x)-1)) * multiplier
+  
+  return(x)
+}
+
+final_df$fact.marketValue = final_df$fact.marketValue %>% clean_currency()
+final_df$fact.fee = final_df$fact.fee %>% clean_currency()
+
+```
+
+```{R}
+total_transfer = 38389
+total_covered_transfer = n_distinct(final_df$fact.url)
+
+most_frequent_value <- function(x) {
+  names(sort(table(x), decreasing = TRUE)[1])
+}
+
+result = final_df %>%
+  group_by(Rumor.Source) %>%
+  summarise(
+    accuracy = sum(fact.real_rumor == TRUE) / n(),
+    coverage = n() / total_covered_transfer,
+    earlyBird = mean(na.omit(Time_Difference)),
+    total_rumor = n(),
+    mean_marketvalue = mean(na.omit(fact.marketValue)),
+    mean_fee = mean(na.omit(fact.fee)),
+    mean_sentiment = mean(abs(as.numeric(Rumor.Sentiment))),
+    mean_confidence = mean(abs(GPT.confidence)),
+    most_language = most_frequent_value(GPT.language)
+  ) %>%
+  filter(total_rumor >= 20)
+
+write.csv(result,"final_result.csv", row.names = FALSE, quote = FALSE)
+```

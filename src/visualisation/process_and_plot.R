@@ -1,3 +1,5 @@
+source('__init__.R')
+
 final_df <- final_df_with_gpt_3.5
 # final_df <- final_df_with_gpt_3.5 %>% filter(fact.real_rumor == T)
 

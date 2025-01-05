@@ -1,0 +1,127 @@
+---
+title: "Rumor_Shiny"
+output: word_document
+date: "2024-12-15"
+---
+
+```{R}
+library(shiny)
+library(ggplot2)
+library(dplyr)
+library(RColorBrewer)
+
+result = read.csv("final_result.csv") # should get df:result to draw diagram
+
+result$Rumor.Label = as.factor(result$Rumor.Label)
+```
+```{R}
+a = ggplot(result) + geom_point(aes( y=accuracy, x=mean_sentiment,size=total_rumor,color=Rumor.Label),alpha=0.8)+  scale_size_area(max_size = 40) + guides(size = guide_none()) + labs(title = "Rumor_source_SpotDiagram") + theme_minimal()
+```
+
+```{R}
+ui = fluidPage(
+  sliderInput(inputId = "kdim",
+              label = "Choose a kmeans dimension",
+              value=4,min=2,max=10),
+  
+  checkboxGroupInput(inputId = "factors",
+      label="Factors",
+      selected = NULL,
+      choiceNames = c("Accuracy","EarlyBird","Total Rumor","Mean Market Value","Mean Transfer Fee","Sentiment in Rumors","Confidence in Rumors"),
+      choiceValues = c("accuracy", "earlyBird", "total_rumor","mean_marketvalue","mean_fee","mean_sentiment","mean_confidence")),
+  
+  selectInput(inputId = "xlab",
+      label="X Axis",
+      choices = c("EarlyBird"="earlyBird","Confidence"="mean_confidence","PCA 1"="pca1")
+  ),
+  
+  selectInput(inputId = "ylab",
+      label="Y Axis",
+      choices = c("Accuracy"="accuracy","Sentiment"="mean_sentiment","PCA 2"="pca2")
+  ),
+  
+  radioButtons(inputId = "colortype",
+      label="Color Variant",
+      choiceNames = c("Grouping","Media Type"),
+      choiceValues = c("cluster","Rumor.Label")
+  ),
+  
+  actionButton("lm",label="Linear model"),
+  
+  verbatimTextOutput("summary"),
+  plotOutput("graph")
+)
+```
+```{R}
+numeric_cols <- result[sapply(result, is.numeric)]
+pca_result <- prcomp(numeric_cols, center = TRUE, scale. = TRUE)
+
+pca_scores <- as.data.frame(pca_result$x[, 1:2])
+
+result$pca1 = pca_result$x[, 1]
+result$pca2 = pca_result$x[, 2]
+```
+
+```{R}
+# pal = brewer.pal(11, "RdYlBu")
+
+
+server = function(input,output){
+  rv = reactiveValues()
+
+  rv$data = result
+  rv$kdim = 4
+  rv$factors = c("accuracy", "earlyBird", "total_rumor","mean_marketvalue")
+  
+  rv$xlab = "earlyBird"
+  rv$ylab = "accuracy"
+  rv$colortype = "cluster"
+  rv$lm = "n"
+  rv$lmformula = NA
+   # initialize the value for reactive values
+
+  observeEvent(input$factors,{
+    kmeans_result = kmeans(result[,rv$factors], centers = rv$kdim)
+    rv$data$cluster = as.factor(kmeans_result$cluster)
+  })
+  
+  observeEvent(input$kdim,{
+    rv$kdim = input$kdim
+    kmeans_result = kmeans(result[,rv$factors], centers = rv$kdim)
+    rv$data$cluster = as.factor(kmeans_result$cluster)
+  })
+  
+  observeEvent(input$xlab,{ rv$xlab = input$xlab })
+  
+  observeEvent(input$ylab,{ rv$ylab = input$ylab })
+  
+  observeEvent(input$colortype,{ rv$colortype = input$colortype })
+  
+  observeEvent(input$lm,{               ## add the linear model line
+    lcurve = lm(as.formula(paste(rv$ylab, "~", rv$xlab)), data= rv$data, weights = total_rumor)
+    rv$lmformula = geom_abline(intercept = coef(lcurve)[1], slope = coef(lcurve)[2], color = "red")
+    rv$lm = "y"
+  })
+
+  output$graph = renderPlot({     ## render the graph output
+      a = ggplot(data=rv$data) + aes_string(y=rv$ylab) + aes_string(x=rv$xlab) + geom_point(aes(size=total_rumor,color=rv$data[[rv$colortype]]),alpha=0.8)+  scale_size_area(max_size = 40) + guides(size = guide_none()) +
+  labs(
+    title = "Rumor_source_SpotDiagram",
+    x = rv$xlab,
+    y = rv$ylab,
+    color = rv$colortype
+  )+ theme_minimal()
+      
+      if(rv$lm!="n") a=a+rv$lmformula
+      a
+  })
+  
+  output$summary = renderPrint({
+   # print(rv$data %>% group_by_at(rv$colortype) %>% summarise_if(is.numeric, mean, na.rm = TRUE))
+    print(table(rv$data$Rumor.Label,rv$data$cluster))
+  })
+
+}
+
+shinyApp(server=server, ui=ui)
+```

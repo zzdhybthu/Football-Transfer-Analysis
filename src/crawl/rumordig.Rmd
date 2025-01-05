@@ -1,0 +1,122 @@
+---
+title: "rumordig"
+output: html_document
+date: "2024-12-06"
+---
+
+```{R}
+library(dplyr)
+library(rvest)
+library(httr)
+library(purrr)
+library(ggplot2)
+library(rvest)
+library(textcat)
+library(syuzhet)
+
+# setwd("C:/")   set working directory
+```
+```{R}
+# Function to safely read a webpage
+safe_read_html = safely(read_html)
+
+# load transfer URLs to scrap in RumoursPostsDataFrame
+load("RumoursPostsDataFrame.RData")
+rpdf = t(RumoursPostsDataFrame)
+```
+```{R}
+# Function to crawl with retries and delay
+crawl_with_retry <- function(url, max_retries = 3, delay = 0.05) {
+  for (i in 1:max_retries) {
+    result = safe_read_html(url)
+    
+    if (!inherits(result$error, "error")) {
+      print("Done.")
+      return(result$result)
+    } else {
+      message(sprintf("Attempt %d failed: %s", i, result$error$message))
+      Sys.sleep(delay)
+    }
+  }
+  
+  stop("All attempts to crawl the webpage failed.")
+}
+
+# Set a custom User-Agent to deceive the website
+ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"
+
+# Use the custom User-Agent in the request
+httr::set_config(httr::config(useragent = ua))
+
+
+source = lapply(rpdf,crawl_with_retry)  ## crawling stage ~5hr
+
+source_names = lapply(source,function(x){x %>% html_elements(".box-border-top a") %>% html_text2()})
+```
+
+```{R}
+# the properties that we are concerned with
+selectors <- list(
+  Star.Name = ".spielername-profil a",
+  Nationality = "tr:nth-child(3) td",
+  Position = "tr:nth-child(6) td",
+  Interested.Club = "tr:nth-child(9) td",
+  Rumor.Date = ".post-header-datum",
+  Rumor.Source = ".box-border-top a",
+  Rumor.Content = ".content"
+)
+
+sentiment_unsupportlist = list("arabic","bengali","chinese","greek-iso8859-7","hindi","japanese","marathi","persian","russian-iso8859_5","russian-koi8_r","russian-windows1251","sanskrit","tamil","tahi","ukranian","urdu","yiddish")
+
+# for each informatin in HTML, create a new row for each source and content
+transfer_news_list <- map(source, function(html_element) {
+  star_name <- html_text(html_node(html_element, selectors$Star.Name))
+  nationality <- html_text(html_node(html_element, selectors$Nationality))
+  position <- html_text(html_node(html_element, selectors$Position))
+  club <- html_text(html_node(html_element,selectors$Interested.Club))
+  
+  dates <- html_text(html_nodes(html_element, selectors$Rumor.Date))
+  sources <- html_text(html_nodes(html_element, selectors$Rumor.Source))
+  contents <- html_text(html_nodes(html_element, selectors$Rumor.Content))
+  
+  # make sure the max length equals
+  max_length <- max(length(sources), length(contents),length(dates))
+  dates <- c(dates, rep(NA, max_length - length(dates)))
+  sources <- c(sources, rep(NA, max_length - length(sources)))
+  contents <- c(contents, rep(NA, max_length - length(contents)))
+  
+  # handle errors in case
+  if (length(sources)!=length(contents) || length(sources)!=length(dates)){
+    print("Wrong at")
+  }
+  
+  pmap_df(list(sources, contents, dates), function(source, content, date) {
+    data.frame(
+      Star.Name = star_name,
+      Nationality = nationality,
+      Position = position,
+      Interested.Club = club,
+      Rumor.Date = date,
+      Rumor.Source = source,
+      Rumor.Content = content,
+      Rumor.Language = textcat(content),
+      Rumor.Sentiment = get_sentiment(content),   ## using Syuzhet method, which later has not been adopted. Changed into GPT 3.5
+      stringsAsFactors = FALSE
+    )
+  })
+})
+
+# combine all df into a large dataframe
+transfer_news_df <- reduce(transfer_news_list, rbind)
+
+# as.character 清洗所爬取内容
+transfer_news_df <- transfer_news_df %>%
+  mutate(across(everything(), as.character))
+
+```
+```{R}
+transfer_news_df = transfer_news_df %>% na.omit()
+
+
+print(transfer_news_df)
+```

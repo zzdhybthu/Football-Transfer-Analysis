@@ -1,0 +1,38 @@
+\section{Discussion}
+\label{sec:5_conclu}
+% This study delved into the task of football transfer news evaluation,
+% 
+% \subsection{Strengths}
+% To achieve our objectives, we first employed web crawling techniques to gather transfer news from \href{www.transfermarkt.co.uk}{Transfermarkt}.
+% 
+% We extracted . We then applied several machine learning algorithms like SVM, ElasticNet, RandomForest predict football transfer outcomes based on rumors collected. With an classification accuracy of 73.77\% on the test dataset, our model generates valuable insights of how football transfer news can be used for prediction.
+% 
+% Furthermore, we visualized and interpreted the most significant features identified through our analysis. In addition, we developed a small application using RShiny to facilitate interactive data exploration and visualization. Finally, we discussed both what we have achieved and the limitations of our work, providing insights for future research endeavors.
+% 
+% \subsection{Limitations}
+% \begin{itemize}
+    % \item Sample Bias: The analysis is limited to the 13251 rumors and 38389 transfers fetched on \url{www.transfermarkt.co.uk}, which covers most transfer rumors in the past 15 years in major football leagues but may not represent the whole picture for football transfer rumors.
+    % \item T:F sample imbalance: For the 13251 rumors fetched, True:False ratio remain low at 2036:11215. The disparity between positive and negative inputs has impaired model performances.
+% \end{itemize}
+% 
+\subsection{Results}
+This study aimed to evaluate football transfer rumors by systematically analyzing their features and building predictive models. By leveraging 13,251 rumored transfers from \href{https://www.transfermarkt.co.uk}{Transfermarkt}, we explored the relationship between rumor characteristics and their eventual outcomes. We employed clustering techniques to group news sources based on metrics such as accuracy, coverage, and reporting tendencies, and developed predictive models to assess the likelihood of a transfer materializing, achieving a peak accuracy of 73.77\% using the Random Forest algorithm.
+
+Our analysis highlighted several critical features that contribute to predicting transfer outcomes. Notably, the timing of rumors, measured by the publication month relative to the transfer window, emerged as a key factor, reflecting the cyclical nature of transfer markets. Additionally, the credibility of rumor sources, derived from historical accuracy rates, played a significant role in prediction. Features extracted from rumor content, such as specificity in naming clubs and player details, further enhanced the model’s performance by emphasizing the importance of concrete, context-rich reporting.
+
+The inclusion of GPT-generated confidence scores provided an additional layer of interpretability, capturing the level of certainty expressed in rumors. These scores demonstrated a meaningful correlation with rumor accuracy, validating their usefulness as a feature. Through feature importance analysis, we found that combining temporal, content-based, and source-based attributes allowed our model to uncover nuanced patterns underlying rumor reliability.
+
+\subsection{Limitations}
+Despite strengths mentioned above, there are several limitations to our study. The dataset, while extensive, is restricted to \href{https://www.transfermarkt.co.uk}{Transfermarkt} and may not represent all global transfer rumors. Furthermore, the significant imbalance between true and false rumors in the dataset posed challenges for the machine learning models, necessitating sampling techniques to mitigate its impact. Expanding data sources and applying advanced methods to address class imbalance could further enhance predictive accuracy.
+
+Future research could explore real-time prediction of emerging rumors, integrate social media data for a more holistic view, and apply advanced natural language processing techniques to capture richer semantic features. By quantifying the reliability of rumor sources and extracting predictive features, we contribute to a deeper understanding of the dynamics of transfer news. Consequently, the methods introduced in this work could be extended to study rumor dynamics in other domains, such as for use in analyzing news in financial markets or political news.
+
+\subsection{Conclusion}
+In conclusion, our study effectively evaluated football transfer rumors by analyzing their features and developing predictive models. Utilizing the dataset collected from Transfermarkt, we identified key factors such as timing, source credibility, and content specificity that significantly influence rumor outcomes. The Random Forest algorithm achieved a peak accuracy of 73.77\%, with GPT-generated confidence scores enhancing interpretability. Despite limitations like dataset restrictions and class imbalance, our findings offer valuable insights into rumor dynamics. In addition, we developed a small application using RShiny to facilitate interactive data exploration and visualization. Finally, we discussed both what we have achieved and the limitations of our work, providing insights for future research endeavors.
+
+\section{Contributions}
+Wen Shenghan: Introduction, Related Works, Data Acquisition, Text Processing
+
+Yang Hongyi:  Data Acquisition, Text Processing, Data cleaning and pre-processing, Rshiny
+
+Chen Ziyi:  Data cleaning and pre-processing, Data Alignment, Feature Engineering, Prediction

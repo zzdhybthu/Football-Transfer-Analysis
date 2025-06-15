@@ -2,7 +2,7 @@
 
 ## Description
 
-Group project driven by the course "Multivariate Statistical Analysis" in Center of Statistical Science, Tsinghua University, 2024-2025.
+Group project driven by the course "Introduction to Data Science course" in Center of Statistical Science, Tsinghua University, 2024-2025.
 
 Grade: A
 
